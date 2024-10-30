@@ -13,11 +13,11 @@ Suppose that you are doing a project analysing news articles from around the wor
 
 ```{r}
 library(tidyverse)
-my.file <- "data/news-article-1.txt"
-raw <- read_file(my.file, locale = locale(encoding="___________"))
-print(raw) # this is __________ [language]
-my.utf.file <- "___________"
-write_file(___________, ___________)
+my.file <- "/Users/helenho/Local/lse-my472.github.io/week04/data/news-article-1.txt"
+raw <- read_file(my.file, locale = locale(encoding="Shift-JIS"))
+print(raw) # this is Japanese[language]
+my.utf.file <- "/Users/helenho/Local/lse-my472.github.io/week04/data/news-article-1-utf8.txt"
+write_file(raw, my.utf.file)
 ```
 
 
@@ -32,14 +32,14 @@ The file `uol.txt` in the course repo for this week (in the `data` folder) conta
 
 ```{r}
 # library(tidyverse) # only load if you haven't already
-text <- ________("data/uol.txt")
-________(text, "________") 
+text <- read_file("data/uol.txt")
+str_view(text, "\\b[A-Z]{1,2}[0-9][A-Z0-9]?[ ]?[0-9][A-Z]{2}\\b") 
 ```
 
 Next, try to mute/delete the second part of each postcode. Add a capturing group to your regular expression with which you can select only the first part, i.e. the first 2-4 characters of the postcodes. Then use find & replace in your text editor or `str_replace_all()` in R, and replace all postcodes with only the information stored in capturing group 1. This deletes the second part of each postcode.
 
 ```{r}
-txt <- ________(text, "________", "________")
+txt <- str_replace_all(text, "([A-Z]{1,2}\\d{1,2}[A-Z]?)\\s?\\d[A-Z]{2}", "\\1")
 print(txt)
 ```
 
@@ -56,14 +56,14 @@ library(quanteda)
 library(quanteda.textstats)
 
 ## 1. how many documents do we have?
-________(data_char_ukimmig2010)
+length(data_char_ukimmig2010)
 ## 2. Can we look at the first 80 characters of each document?
-for(document in ________){
-  print(________(document, 1, 80)) ## There are a bunch of ways to do this!
+for(document in data_char_ukimmig2010){
+  print(substr(document, 1, 80)) ## There are a bunch of ways to do this!
 }
 ## 3. That did not tell us which party produced which text. Now print the party names before the first 80 characters:
-for(party in names(________)){
-  print(paste0(party,": ",________(data_char_ukimmig2010[party], 1, 80))) ## There are a bunch of ways to do this!
+for(party in names(data_char_ukimmig2010)){
+  print(paste0(party,": ",substr(data_char_ukimmig2010[party], 1, 80))) ## There are a bunch of ways to do this!
 }
 ```
 
@@ -72,48 +72,48 @@ Now, create a dfm using the following recipe. First, transform the collection of
 ```{r}
 my.dfm <- data_char_ukimmig2010 %>%                     # 1. start with the data
   corpus() %>%                                          
-  tokens(___________ = TRUE, ___________ = TRUE) %>%    # 2. remove punctuation and numbers
-  tokens_remove(___________) %>%                        # 3. remove stopwords (English)
-  ___________() %>%                                     # 4. stem the tokens
+  tokens(remove_punct = TRUE, remove_numbers = TRUE) %>%    # 2. remove punctuation and numbers
+  tokens_remove(stopwords('en')) %>%                        # 3. remove stopwords (English)
+  tokens_wordstem() %>%                                     # 4. stem the tokens
   dfm() %>%
-  dfm_trim(___________)                                 # 5. minimum word frequency = 2
+  dfm_trim(min_docfreq = 2)                                 # 5. minimum word frequency = 2
 my.dfm
 ```
 
 Order the parties by the number of features (highest to lowest)
 
 ```{r}
-rev(________(________(my.dfm)))
+rev(sort(ntoken(my.dfm)))
 ```
 
 Identify the most commonly used words in the dfm by calculating which 10 words are the most common.
 
 ```{r}
-________(my.dfm, ________)
+topfeatures(my.dfm, 10)
 ```
 
 Find any document features that refer work or any variation on the word 
 
 ```{r}
 my.dfm %>% 
-  ________(pattern = "________", ________) %>% 
+  dfm_select(pattern = "work", valuetype = "regex") %>% 
   featnames()
 ```
 
 Create a simple dictionary with two categories: economic issues, and legal issues. (This is a terrible dictionary for the purposes of studying these documents... you're just doing this to practice making dictionaries.)
 
 ```{r}
-simple_dict <- ________(economic = c("work", "employ"), 
+simple_dict <- list(economic = c("work", "employ"), 
                     legal = c("asylum", "illeg", "deport"))
-simple_dict <- ________(simple_dict)
+simple_dict <- dictionary(simple_dict)
 simple_dict
 ```
 
 How many times do words appear in the two categores in our dictionary within each document? What percentage of words in each document focuses on the two categories in our dictionary?
 
 ```{r}
-________(my.dfm, dictionary = simple_dict) 
-________(my.dfm, dictionary = simple_dict)/________(my.dfm)
+dfm_lookup(my.dfm, dictionary = simple_dict) 
+dfm_lookup(my.dfm, dictionary = simple_dict)/rowSums(my.dfm)
 ```
 
 ## Optional
